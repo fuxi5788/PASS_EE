@@ -17,49 +17,13 @@ V = 1.0
 PMOTOR = 1.0          # Table tab:sim_params of the paper
 PC = 3.0              # fixed circuit power P_c (Table tab:sim_params of the paper)
 PF = 0.2              # per-RF-chain power P_f (Table tab:sim_params of the paper)
-# ---- Position-action scale x = X0 + a * POS_SCALE --------------------------
-# POS_SCALE_MODE selects the mapping (see _sample_params):
-#   'window' : V * Tframe            -- the original mapping (Dmax); the action
-#                                       exactly fills the frame, so Tm/Tframe
-#                                       = |a| for every Tframe (EE ~flat)
-#   'ref'    : V * POS_REF_TFRAME    -- constant 1 m reference
-#   'auto'   : V * min(Tframe, REF)  -- previous default
-#   'fixed'  : POS_SCALE_FIXED       -- constant movement budget  <-- default
-# For Tframe <= POS_REF_TFRAME, 'window' and 'auto' are algebraically
-# identical, and both are DIFFERENT from 'ref'/'fixed': the action scale, and
-# with it the realized deployment, then depends on Tframe.
-#
-# POS_SCALE_FIXED = 0.115 m (= V * 0.115 s) is the movement budget of one frame.
-# It is deliberately below 40*LAM/2 = 0.2143 m, half the initial PA spacing, so
-# a commanded offset can never make a pinch point cross a neighbour; the
-# ordering / min-gap projection in step() stays inactive and the movement
-# bookkeeping carries no re-pairing artifact.  It also keeps the accepted
-# EE(Tframe=0.8 s) and EE(1.0 s) points (10.1477 / 10.2707) within +-0.016.
 POS_SCALE_MODE = 'fixed'
 POS_SCALE_FIXED = 0.115
 POS_REF_TFRAME = 1.0
-
-# ---- Movement-cost bookkeeping (M_d = max|x - X0|) -------------------------
-# The commanded position of pinch point n is  x_n = X0_n + a_n * POS_SCALE.
-# step() then enforces the ordering / minimum-gap constraint by SORTING each
-# waveguide row, which RE-ASSIGNS pinch points to slots.  There are two ways to
-# charge the motor travel:
-#   'slots'     : after the sort (current behaviour; the reward the policy was
-#                 trained on) -> the travel of "the n-th slot", not of PA n;
-#   'commanded' : from the commanded offset, max|a_n| * POS_SCALE, i.e. the
-#                 real travel of each physical pinch point (pairing preserved).
-# The two coincide whenever no crossing occurs (POS_SCALE < 40*LAM/2), which is
-# the case for POS_SCALE_MODE='fixed'.
-# WARNING ('slots' WITH a large POS_SCALE): the charged travel is then NOT
-# monotone in POS_SCALE.  The PAs start 40*LAM = 0.4286 m apart, so a commanded
-# offset near 2*40*LAM = 0.857 m maps a PA almost onto the slot two places away
-# and the recorded travel collapses to ~|commanded - 0.857|.  With |a| ~ 0.98
-# that zero sits at POS_SCALE ~ 0.87, i.e. Tframe ~ 0.9 s, which is exactly the
-# spurious EE peak observed with the old 'auto' / 'window' action scale.
 MD_MODE = 'slots'
 EPS_PA = 0.9
 delta2 = 1.0 / EPS_PA
-R_MIN = 1.0
+R_MIN = 0.8
 
 # Reward reference and penalty coefficients for the paper objective
 E_REF = 10.0
